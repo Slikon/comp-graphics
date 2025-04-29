@@ -45,41 +45,48 @@ def rational_bezier_point(points, weights, t):
     
     return numerator / denominator
 
-def draw_rational_bezier_approximation(points, img_shape, num_points_per_segment=7, weight_middle=0.8):
-    """Draw the contour by approximating points using rational Bezier curves."""
+# This function is no longer used in the revised approach
+# def fit_rational_elliptical_arc(points, weight_middle=1.5):
+#     ...
+
+# Replace the previous drawing function with one that draws arcs
+def draw_rational_bezier_arcs(points, img_shape, weight_middle=0.7, num_steps_per_arc=10):
+    # "Draw the contour by connecting points calculated along rational Bezier arcs defined by consecutive triplets.\"\"\"
     result_img = np.ones(img_shape, dtype=np.uint8) * 255
-    
     n_points = len(points)
-    if n_points < num_points_per_segment:
-        print("Not enough points to draw.")
+
+    if n_points < 3:
+        print("Not enough points to draw arcs.")
         # Draw original points if too few
         if n_points > 1:
              cv2.polylines(result_img, [points], isClosed=True, color=(0, 0, 0), thickness=1)
         return result_img
 
-    smoothed_points = []
-    
-    # Iterate through each original point to calculate its smoothed position
+    all_arc_points = []
+    weights = [1.0, weight_middle, 1.0]
+    # Generate t values for each arc segment, excluding the endpoint t=1
+    # because it will be the start point t=0 of the next segment.
+    t_values = np.linspace(0, 1, num_steps_per_arc, endpoint=False)
+
     for i in range(n_points):
-        # Define the segment centered around point i (using modulo for wrap-around)
-        # Ensure indices are within bounds using modulo operator
-        segment_indices = [(i + j - num_points_per_segment // 2 + n_points) % n_points for j in range(num_points_per_segment)]
-        segment = points[segment_indices]
+        # Define control points for the arc segment using 3 consecutive points
+        p0 = points[i]
+        p1 = points[(i + 1) % n_points]
+        p2 = points[(i + 2) % n_points]
+        control_points = [p0, p1, p2]
 
-        # Use start, middle, and end points of the segment as control points
-        control_points = [segment[0], segment[num_points_per_segment // 2], segment[-1]]
-        weights = [1.0, weight_middle, 1.0]
+        # Calculate points along this arc segment for t in [0, 1)
+        for t in t_values:
+            arc_pt = rational_bezier_point(control_points, weights, t)
+            # Ensure points are integers for drawing
+            all_arc_points.append(arc_pt.astype(np.int32))
 
-        # Calculate the point on the Bezier curve corresponding to the center (t=0.5)
-        # This point represents the smoothed position for points[i]
-        smoothed_pt = rational_bezier_point(control_points, weights, 0.5) 
-        smoothed_points.append(smoothed_pt.astype(np.int32))
-
-    # Draw a closed polyline through the smoothed points
-    if smoothed_points:
-        cv2.polylines(result_img, [np.array(smoothed_points)], isClosed=True, color=(0, 0, 0), thickness=1)
+    # Draw the complete contour by connecting all calculated points from all arcs
+    if all_arc_points:
+        cv2.polylines(result_img, [np.array(all_arc_points)], isClosed=True, color=(0, 0, 0), thickness=1)
 
     return result_img
+
 
 def main():
     # Use relative path within the lab1 directory
@@ -97,18 +104,18 @@ def main():
         if len(points) == 0:
             print("No contours found in the image.")
             return
-        
-        # Draw using the rational Bezier approximation method
+
+        # Draw using the rational Bezier arc method
         # Experiment with parameters:
-        # num_points_per_segment: Size of the window for smoothing (odd number recommended)
         # weight_middle: Affects curve shape (0.5=parabolic, <1 pulls away, >1 pulls towards P1)
-        result_img = draw_rational_bezier_approximation(
-            points, 
+        # num_steps_per_arc: How many line segments approximate each arc
+        result_img = draw_rational_bezier_arcs(
+            points,
             original_img.shape[:2], # Pass (height, width)
-            num_points_per_segment=7, # Window size
-            weight_middle=0.7       # Weight for middle control point (adjust for desired smoothness/shape)
+            weight_middle=0.7,      # Weight for middle control point (adjust for shape)
+            num_steps_per_arc=10    # Number of steps (line segments) per arc
         )
-        
+
         # Display results
         plt.figure(figsize=(12, 6))
         
@@ -119,7 +126,7 @@ def main():
         
         plt.subplot(1, 2, 2)
         plt.imshow(result_img, cmap='gray')
-        plt.title("Rational Bezier Approximation") # Updated title
+        plt.title("Rational Bezier Arcs") # Updated title
         plt.axis('off')
         
         plt.tight_layout()
