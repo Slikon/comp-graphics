@@ -7,19 +7,20 @@ from matplotlib.widgets import Slider  # Import Slider
 
 # --- Parameters ---
 R_BASE = 1.0  # Base radius for the sphere interpretation
-R_MOD = 0.3   # Modifier radius R from the formula
+R_MOD = 0.3   # Modifier radius R from the formula (RE-ADDED)
 U_RES = 50    # Resolution for u parameter (longitude)
 V_RES = 50    # Resolution for v parameter (latitude)
 SHARK_IMAGE_PATH = "shark.png"  # Relative path to shark image in lab2 folder
 
-# --- Surface Definition (Variant 5: Місяць) ---
+# --- Surface Definition (Variant 5: Місяць) --- REVERTED TO ORIGINAL FORMULA
 def moon_surface(u, v, R_base, R_mod):
     """
-    Calculates the coordinates of the 'Moon' surface.
-    Interprets (x_ш, y_ш, z_ш) as points on a base sphere.
-    x = x_ш + R(v/45°)^2
+    Calculates the coordinates of the 'Moon' surface based on the formula:
+    x = x_ш + R_mod * (v / 45°)^2
     y = y_ш
-    z = 2z_ш
+    z = 2 * z_ш
+    where (x_ш, y_ш, z_ш) are points on a base sphere (radius R_base).
+    u in [0, 2*pi], v in [0, pi]
     """
     # Base sphere coordinates
     x_sh = R_base * np.sin(v) * np.cos(u)
@@ -27,7 +28,6 @@ def moon_surface(u, v, R_base, R_mod):
     z_sh = R_base * np.cos(v)
 
     # Apply the transformations from the formula
-    # Convert 45 degrees to radians for the calculation
     angle_45_rad = np.pi / 4
     x = x_sh + R_mod * (v / angle_45_rad)**2
     y = y_sh
@@ -78,7 +78,7 @@ def read_points_from_image(image_path):
         return np.array([])
 
 # --- Function to map 2D points to UV space ---
-def map_contour_to_uv(points_2d, u_range=(0, 2*np.pi), v_range=(0, np.pi), u_offset=0, v_offset=0, u_scale=1.0, v_scale=1.0):
+def map_contour_to_uv(points_2d, u_range=(-np.pi/2, np.pi/2), v_range=(-np.pi/2, np.pi/2), u_offset=0, v_offset=0, u_scale=1.0, v_scale=1.0):
     """Normalizes 2D points and maps them to UV space with offset and scale."""
     if points_2d.size == 0:
         return np.array([]), np.array([])
@@ -134,9 +134,12 @@ def update(val):
     if shark_points_2d is not None and shark_points_2d.size > 0:
         u_shark, v_shark = map_contour_to_uv(
             shark_points_2d,
-            u_range=(0, 2*np.pi), v_range=(0, np.pi),
-            u_offset=shark_u_offset, v_offset=shark_v_offset,
-            u_scale=shark_u_scale, v_scale=shark_v_scale
+            u_range=(0, 2*np.pi),  # Reverted U range
+            v_range=(0, np.pi),    # Reverted V range
+            u_offset=shark_u_offset,
+            v_offset=shark_v_offset,
+            u_scale=shark_u_scale,
+            v_scale=shark_v_scale
         )
         x_shark, y_shark, z_shark = moon_surface(u_shark, v_shark, R_BASE, R_MOD)
 
@@ -155,13 +158,17 @@ def update(val):
             shark_plot.remove()
             shark_plot = None
 
-    surf_plot = ax.plot_surface(x_transformed, y_transformed, z_transformed, cmap='viridis', edgecolor='k', lw=0.5, rstride=2, cstride=2, alpha=0.6)
+    surf_plot = ax.plot_surface(x_transformed, y_transformed, z_transformed,
+                                # color='#073B4C',  # Dark blue
+                                # color='#D0D7DA',  # white blue
+                                color='#FFFFFF',  # white blue
+                                edgecolor='k', lw=0.2, rstride=2, cstride=2, alpha=0.4)
 
     if len(x_shark_transformed) > 0:
         shark_plot = ax.plot(np.append(x_shark_transformed, x_shark_transformed[0]),
                              np.append(y_shark_transformed, y_shark_transformed[0]),
                              np.append(z_shark_transformed, z_shark_transformed[0]),
-                             color='red', lw=2, label='Shark Contour')
+                             color='red', lw=5, label='Shark Contour')
     else:
         shark_plot = None
 
@@ -173,8 +180,8 @@ def main():
     global slider_rot_x, slider_rot_y, slider_rot_z, slider_trans_x, slider_trans_y, slider_trans_z
     global slider_shark_u_off, slider_shark_v_off, slider_shark_u_scl, slider_shark_v_scl
 
-    u = np.linspace(0, 2 * np.pi, U_RES)
-    v = np.linspace(0, np.pi, V_RES)
+    u = np.linspace(0, 2 * np.pi, U_RES)  # Reverted U range
+    v = np.linspace(0, np.pi, V_RES)      # Reverted V range
     u_grid, v_grid = np.meshgrid(u, v)
 
     x_surf, y_surf, z_surf = moon_surface(u_grid, v_grid, R_BASE, R_MOD)
@@ -204,8 +211,8 @@ def main():
 
     init_angle_x, init_angle_y, init_angle_z = 0, 0, 0
     init_trans_x, init_trans_y, init_trans_z = 0, 0, 0
-    init_shark_u_offset = np.pi / 2
-    init_shark_v_offset = np.pi / 4
+    init_shark_u_offset = np.pi / 2  # Reverted initial U offset
+    init_shark_v_offset = np.pi / 4  # Reverted initial V offset
     init_shark_u_scale = 0.5
     init_shark_v_scale = 0.5
 
@@ -238,8 +245,8 @@ def main():
     ax_shark_v_off = plt.axes([col1_x + slider_w/2, row4_y, slider_w/2 - 0.01, slider_h], facecolor=axcolor)
     ax_shark_u_scl = plt.axes([col2_x, row4_y, slider_w/2 - 0.01, slider_h], facecolor=axcolor)
     ax_shark_v_scl = plt.axes([col2_x + slider_w/2, row4_y, slider_w/2 - 0.01, slider_h], facecolor=axcolor)
-    slider_shark_u_off = Slider(ax_shark_u_off, 'Shark U Off', 0, 2*np.pi, valinit=init_shark_u_offset)
-    slider_shark_v_off = Slider(ax_shark_v_off, 'Shark V Off', 0, np.pi, valinit=init_shark_v_offset)
+    slider_shark_u_off = Slider(ax_shark_u_off, 'Shark U Off', 0, 2*np.pi, valinit=init_shark_u_offset)  # Reverted range
+    slider_shark_v_off = Slider(ax_shark_v_off, 'Shark V Off', 0, np.pi, valinit=init_shark_v_offset)  # Reverted range
     slider_shark_u_scl = Slider(ax_shark_u_scl, 'Shark U Scale', 0.1, 2.0, valinit=init_shark_u_scale)
     slider_shark_v_scl = Slider(ax_shark_v_scl, 'Shark V Scale', 0.1, 2.0, valinit=init_shark_v_scale)
 
