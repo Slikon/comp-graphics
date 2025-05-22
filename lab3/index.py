@@ -54,7 +54,7 @@ def draw_l_system(t, instructions, angle, distance):
 
     screen.update() # Update screen once drawing is complete
 
-def run_hexagonal_mosaic(iterations=3, length=10):
+def run_hexagonal_mosaic(iterations=10, length=10):
     """Sets up and runs the Hexagonal Mosaic L-System."""
     axiom = "X"
     rules = {
@@ -201,7 +201,7 @@ if __name__ == "__main__":
     print("\n--- L-System: Hexagonal Mosaic ---")
     try:
         # Run turtle graphics in a way that allows subsequent plots
-        run_hexagonal_mosaic(iterations=4, length=5) # Adjust iterations/length as needed
+        run_hexagonal_mosaic(iterations=40, length=5) # Adjust iterations/length as needed
         print("L-System window opened. Close it manually to continue.")
         time.sleep(2)
     except turtle.Terminator:

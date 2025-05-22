@@ -94,7 +94,9 @@ def map_contour_to_uv(points_2d, u_range=(-np.pi/2, np.pi/2), v_range=(-np.pi/2,
     u_span = u_max - u_min
     v_span = v_max - v_min
 
+    # v_mapped = v_min + (normalized_points[:, 1] * v_span * v_scale)
     v_mapped = v_min + (normalized_points[:, 1] * v_span * v_scale) + v_offset
+    # u_mapped = u_min + (normalized_points[:, 0] * u_span * u_scale)
     u_mapped = u_min + (normalized_points[:, 0] * u_span * u_scale) + u_offset
 
     u_mapped = np.mod(u_mapped, u_max)
